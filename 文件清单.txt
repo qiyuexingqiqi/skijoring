@@ -1,0 +1,37 @@
+﻿滑雪项目覆盖文件清单
+
+共 15 个源资源/代码文件，32 个 Assets 条目（含 .meta）。
+路径以 Unity 工程根目录为起点。
+
+Assets/LapinerTools/SnowboardStarterKit/Resources/CharacterModels/PlayerModelDefault.prefab	438736 bytes
+Assets/LapinerTools/SnowboardStarterKit/Resources/CharacterModels/PlayerModelDefault.prefab.meta	95 bytes
+Assets/LapinerTools/SnowboardStarterKit/Scripts/Player/PlayerModel/PlayerModelHandler.cs	16744 bytes
+Assets/LapinerTools/SnowboardStarterKit/Scripts/Player/PlayerModel/PlayerModelHandler.cs.meta	178 bytes
+Assets/Male_Skier/Prefabs/SK_Male_Skier_A-Pose Variant.prefab	3618 bytes
+Assets/Male_Skier/Prefabs/SK_Male_Skier_A-Pose Variant.prefab.meta	154 bytes
+Assets/Scripts/AlpinePanelGraphic.cs	2492 bytes
+Assets/Scripts/AlpinePanelGraphic.cs.meta	243 bytes
+Assets/Scripts/CameraViewSwitcherUI.cs	3367 bytes
+Assets/Scripts/CameraViewSwitcherUI.cs.meta	243 bytes
+Assets/Scripts/CarvingController.cs	13488 bytes
+Assets/Scripts/CarvingController.cs.meta	243 bytes
+Assets/Scripts/EquipmentBoardGraphic.cs	5522 bytes
+Assets/Scripts/EquipmentBoardGraphic.cs.meta	243 bytes
+Assets/Scripts/EquipmentCardFeedback.cs	1169 bytes
+Assets/Scripts/EquipmentCardFeedback.cs.meta	243 bytes
+Assets/Scripts/EquipmentSelectionLayout.cs	1552 bytes
+Assets/Scripts/EquipmentSelectionLayout.cs.meta	243 bytes
+Assets/Scripts/SkierTurnBalance.cs	5596 bytes
+Assets/Scripts/SkierTurnBalance.cs.meta	240 bytes
+Assets/SnowboardIntegration/SnowboardUpperBodyBalance.cs	6598 bytes
+Assets/SnowboardIntegration/SnowboardUpperBodyBalance.cs.meta	240 bytes
+Assets/SnowboardIntegration/Snowfield_Integrated.unity	5918535 bytes
+Assets/SnowboardIntegration/Snowfield_Integrated.unity.meta	155 bytes
+Assets/UI.meta	172 bytes
+Assets/UI/Fonts.meta	172 bytes
+Assets/UI/Fonts/AlpineUI.ttf	43712 bytes
+Assets/UI/Fonts/AlpineUI.ttf.meta	477 bytes
+Assets/UI/Fonts/OFL.txt	4388 bytes
+Assets/UI/Fonts/OFL.txt.meta	158 bytes
+Assets/UI/Fonts/README.txt	321 bytes
+Assets/UI/Fonts/README.txt.meta	158 bytes
