@@ -3,6 +3,18 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody))]
 public class CarvingController : MonoBehaviour
 {
+    public bool RaceInputLocked { get; set; }
+
+    public void ResetForRace(Vector3 position, Quaternion rotation)
+    {
+        if (rb == null) rb = GetComponent<Rigidbody>();
+        rb.position = position;
+        rb.rotation = rotation;
+        if (!rb.isKinematic) { rb.velocity = Vector3.zero; rb.angularVelocity = Vector3.zero; }
+        currentYawAngle = rotation.eulerAngles.y;
+        currentSpeed = steerInput = currentAnimTurnInput = turnInput = 0;
+        isAccelerating = wasAccelerating = isTurning = wasTurning = wasBraking = false;
+    }
     [Header("=== 变量对接 (第2组+第3组) ===")]
     [Range(-1f, 1f)]
     public float turnInput = 0f;
@@ -131,6 +143,7 @@ public class CarvingController : MonoBehaviour
 
     void Update()
     {
+        if (RaceInputLocked) return;
         if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
             steerInput = -1f;
         else if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow))
@@ -200,6 +213,7 @@ public class CarvingController : MonoBehaviour
 
     void FixedUpdate()
     {
+        if (RaceInputLocked) return;
         currentSpeed = rb.velocity.magnitude;
 
         CheckGround();

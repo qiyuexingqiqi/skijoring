@@ -23,6 +23,7 @@ namespace Snowboard
 		
 		void FixedUpdate()
 		{
+            if (PlayerCTRL != null && PlayerCTRL.RaceInputLocked) { m_collData.Clear(); return; }
 			// flush collision at the end of a frame
 			foreach(Collision coll in m_collData)
 			{

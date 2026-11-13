@@ -71,6 +71,7 @@ namespace SkiRace
             public bool hasPosition;
             public double positionTime;
             public float progress;
+            public float progressMeters;
             public float distanceToNext;
         }
 
@@ -143,7 +144,7 @@ namespace SkiRace
             if (Phase == RacePhase.Racing && state.status == RacerStatus.Racing)
             {
                 state.status = RacerStatus.Disconnected;
-                state.finalElapsed = Math.Max(0d, CurrentTime - startTime - state.penalty);
+                state.finalElapsed = Math.Max(0d, CurrentTime - startTime + state.penalty);
                 if (AllDecided()) CompleteRace(CurrentTime);
             }
             else
@@ -300,7 +301,8 @@ namespace SkiRace
 
             double now = CurrentTime;
             int finishIndex = track.FinishIndex;
-            bool finish = isFinish || checkpointIndex == finishIndex;
+            if (checkpointIndex < 0 || checkpointIndex >= track.CheckpointCount) return;
+            bool finish = checkpointIndex == finishIndex;
 
             if (finish)
             {
@@ -320,7 +322,7 @@ namespace SkiRace
                 state.lastCheckpoint = finishIndex;
                 state.lastCheckpointTime = now;
                 state.status = RacerStatus.Finished;
-                state.finishTime = Math.Max(0d, now - startTime - state.penalty);
+                state.finishTime = Math.Max(0d, now - startTime + state.penalty);
                 state.progress = 1f;
                 state.distanceToNext = 0f;
 
@@ -413,6 +415,8 @@ namespace SkiRace
                     rank = rank,
                     checkpointIndex = state.lastCheckpoint,
                     progress = state.progress,
+                    progressMeters = state.progressMeters,
+                    distanceToLeader = Mathf.Max(0, sortBuffer[0].progressMeters - state.progressMeters),
                     elapsedSeconds = ElapsedFor(state, now),
                     status = state.status
                 });
@@ -424,10 +428,21 @@ namespace SkiRace
         private void ComputeProgress(RacerState state)
         {
             int count = track.CheckpointCount;
+            float total = 0;
+            float completedDistance = 0;
+            for (int i = 0; i < count; i++)
+            {
+                Vector3 from = i > 0 ? track.GetCheckpointPosition(i - 1)
+                    : (track.GetStartSlot(0) != null ? track.GetStartSlot(0).position : track.GetCheckpointPosition(0));
+                float length = Vector3.Distance(from, track.GetCheckpointPosition(i));
+                total += length;
+                if (i <= state.lastCheckpoint) completedDistance += length;
+            }
 
             if (state.status == RacerStatus.Finished)
             {
                 state.progress = 1f;
+                state.progressMeters = total;
                 state.distanceToNext = 0f;
                 return;
             }
@@ -435,6 +450,7 @@ namespace SkiRace
             if (state.status == RacerStatus.Waiting)
             {
                 state.progress = 0f;
+                state.progressMeters = 0;
                 state.distanceToNext = 9999f;
                 return;
             }
@@ -457,7 +473,8 @@ namespace SkiRace
             float fraction = Mathf.Clamp01(1f - distance / segment);
 
             state.distanceToNext = distance;
-            state.progress = Mathf.Clamp01((state.lastCheckpoint + 1 + fraction) / Mathf.Max(1, count));
+            state.progressMeters = completedDistance + fraction * segment;
+            state.progress = total > .001f ? Mathf.Clamp01(state.progressMeters / total) : 0;
         }
 
         private static int StatusPriority(RacerStatus status)
@@ -503,7 +520,7 @@ namespace SkiRace
         {
             if (state.status == RacerStatus.Finished) return state.finishTime;
             if (state.status == RacerStatus.Dnf || state.status == RacerStatus.Disconnected) return state.finalElapsed;
-            if (state.status == RacerStatus.Racing) return Math.Max(0d, now - startTime - state.penalty);
+            if (state.status == RacerStatus.Racing) return Math.Max(0d, now - startTime + state.penalty);
             return 0d;
         }
 
@@ -528,11 +545,11 @@ namespace SkiRace
                 if (state.status == RacerStatus.Racing || state.status == RacerStatus.Waiting)
                 {
                     state.status = RacerStatus.Dnf;
-                    state.finalElapsed = Math.Max(0d, now - startTime - state.penalty);
+                    state.finalElapsed = Math.Max(0d, now - startTime + state.penalty);
                 }
                 else if (state.status == RacerStatus.Disconnected)
                 {
-                    state.finalElapsed = Math.Max(0d, now - startTime - state.penalty);
+                    state.finalElapsed = Math.Max(0d, now - startTime + state.penalty);
                 }
             }
 

@@ -18,10 +18,11 @@ public sealed class SkiRaceManager : MonoBehaviour
     public Button retryButton;
 
     public bool IsRunning { get; private set; }
+    public bool NetworkControlled { get; private set; }
     public bool IsFinished { get; private set; }
     public GameObject ActivePlayer { get; private set; }
     public float FinishSpeed { get; private set; }
-    public double ElapsedSeconds => IsRunning ? Math.Max(0d, Time.timeAsDouble - startedAt) : elapsed;
+    public double ElapsedSeconds => IsRunning && !NetworkControlled ? Math.Max(0d, Time.timeAsDouble - startedAt) : elapsed;
     public string EquipmentName => doubleBoard ? "双板滑雪" : "单板滑雪";
 
     private double startedAt;
@@ -65,6 +66,7 @@ public sealed class SkiRaceManager : MonoBehaviour
 
     private void Update()
     {
+        if (NetworkControlled) return;
         if (IsRunning) RefreshClock();
         if ((IsRunning || IsFinished) && Input.GetKeyDown(KeyCode.R)) ReturnToSelection();
     }
@@ -76,6 +78,7 @@ public sealed class SkiRaceManager : MonoBehaviour
 
     public bool TryFinish(Collider entrant)
     {
+        if (NetworkControlled) return false;
         if (!IsRunning || ActivePlayer == null || entrant == null) return false;
         if (entrant.transform != ActivePlayer.transform && !entrant.transform.IsChildOf(ActivePlayer.transform)) return false;
         var body = ActivePlayer.GetComponent<Rigidbody>();
@@ -137,5 +140,35 @@ public sealed class SkiRaceManager : MonoBehaviour
         long centiseconds = (long)Math.Floor(Math.Max(0d, seconds) * 100d);
         return string.Format(CultureInfo.InvariantCulture, "{0:00}:{1:00}.{2:00}",
             centiseconds / 6000, centiseconds / 100 % 60, centiseconds % 100);
+    }
+
+    public void BeginNetworkRun(GameObject player, bool useDoubleBoard)
+    {
+        NetworkControlled = true;
+        ActivePlayer = player;
+        doubleBoard = useDoubleBoard;
+        IsRunning = true;
+        IsFinished = false;
+        elapsed = 0;
+        if (equipmentText != null) equipmentText.text = EquipmentName + " · 多人竞速";
+        if (completionPanel != null) completionPanel.SetActive(false);
+        if (timerPanel != null) timerPanel.SetActive(true);
+    }
+
+    public void ApplyNetworkClock(double seconds, bool finished)
+    {
+        elapsed = seconds;
+        IsRunning = !finished;
+        IsFinished = finished;
+        RefreshClock();
+    }
+
+    public void EndNetworkRun()
+    {
+        NetworkControlled = IsRunning = IsFinished = false;
+        ActivePlayer = null;
+        elapsed = 0;
+        if (timerPanel != null) timerPanel.SetActive(false);
+        if (completionPanel != null) completionPanel.SetActive(false);
     }
 }

@@ -31,6 +31,31 @@ namespace Snowboard
 	[RequireComponent (typeof (Collider))]
 	public class PlayerController : MonoBehaviour
 	{
+        public bool RaceInputLocked { get; set; }
+
+        public void ResetForRace(Vector3 position, Quaternion rotation)
+        {
+            Vector3 delta = position - transform.position;
+            foreach (var body in GetComponentsInChildren<Rigidbody>(true))
+            {
+                body.position += delta;
+                if (!body.isKinematic) { body.velocity = Vector3.zero; body.angularVelocity = Vector3.zero; }
+            }
+            transform.SetPositionAndRotation(position, rotation);
+            m_cachedRigidBody.position = position;
+            m_cachedRigidBody.rotation = rotation;
+            if (damper != null) damper.position = position - Vector3.up * .1f;
+            m_bordDirection = rotation * Vector3.forward;
+            m_bordUpVector = Vector3.up;
+            m_isSwitch = false;
+            m_state = PlayerState.Air;
+            m_grabState = PlayerGrabState.NO_GRAB;
+            m_airTime = 0;
+            m_collisionAbsenceCounter = COLLISION_ABSENCE_MAX;
+            m_lastCollisionPointAccumulatorNum = 0;
+            m_lastCollisionPointAccumulator = Vector3.zero;
+            m_lastFrameVelocity = m_velocityLastFrame = Vector3.zero;
+        }
 		public EPlayers m_playerIndex = EPlayers.SINGLE;
 		
 		public Transform damper = null;
@@ -306,6 +331,7 @@ namespace Snowboard
 		
 		void FixedUpdate ()
 	{	
+        if (RaceInputLocked) return;
 		if (m_state != PlayerState.LevelEnd)
 		{
 			SnapToGroundIfBuried(); // 陷入雪地时上提，修复穿模
@@ -334,6 +360,7 @@ namespace Snowboard
 		
 		void Update ()
 		{
+            if (RaceInputLocked) { m_modelHandler.OnUpdate(); return; }
 			if (m_state != PlayerState.LevelEnd)
 			{	
 				handleSounds();

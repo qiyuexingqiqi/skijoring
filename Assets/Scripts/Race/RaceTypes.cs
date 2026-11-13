@@ -31,6 +31,8 @@ namespace SkiRace
         public int rank;
         public int checkpointIndex;
         public float progress;
+        public float progressMeters;
+        public float distanceToLeader;
         public double elapsedSeconds;
         public RacerStatus status;
     }

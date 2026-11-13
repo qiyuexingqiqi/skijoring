@@ -1,0 +1,5 @@
+Mirror v96.11.4
+Upstream: https://github.com/MirrorNetworking/Mirror/releases/tag/v96.11.4
+Vendored: Core, CompilerSymbols, Components, Editor, Plugins, Transports, Authenticators.
+License: MIT; see LICENSE.txt and third-party notices in the source tree.
+Project transport: Telepathy TCP, port 7777.

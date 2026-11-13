@@ -17,7 +17,7 @@ public class UdpReceiver : MonoBehaviour
 
     private UdpClient client;
     private Thread receiveThread;
-    private bool isRunning = true;
+    private volatile bool isRunning;
 
     private SkiController skiController;   // 引用滑雪控制器
 
@@ -30,6 +30,13 @@ public class UdpReceiver : MonoBehaviour
             Debug.LogError("UdpReceiver 没有找到 SkiController，请放在同一物体上或手动拖拽赋值。");
         }
 
+        try { client = new UdpClient(port); }
+        catch (SocketException)
+        {
+            Debug.LogWarning("外部传感器端口 " + port + " 已被使用，本实例继续使用键盘控制。");
+            return;
+        }
+        isRunning = true;
         receiveThread = new Thread(new ThreadStart(ReceiveData));
         receiveThread.IsBackground = true;
         receiveThread.Start();
@@ -46,7 +53,6 @@ public class UdpReceiver : MonoBehaviour
     {
         try
         {
-            client = new UdpClient(port);
             IPEndPoint anyIP = new IPEndPoint(IPAddress.Any, 0);
 
             while (isRunning)
@@ -68,7 +74,7 @@ public class UdpReceiver : MonoBehaviour
         }
         catch (Exception e)
         {
-            Debug.LogError("UDP Error: " + e);
+            if (isRunning) Debug.LogWarning("外部传感器接收已停止：" + e.Message);
         }
         finally
         {
@@ -79,7 +85,11 @@ public class UdpReceiver : MonoBehaviour
     void OnApplicationQuit()
     {
         isRunning = false;
-        if (receiveThread != null) receiveThread.Abort();
         if (client != null) client.Close();
+        if (receiveThread != null && receiveThread.IsAlive) receiveThread.Join(200);
+        receiveThread = null;
+        client = null;
     }
+
+    void OnDestroy() { OnApplicationQuit(); }
 }
