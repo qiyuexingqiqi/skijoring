@@ -51,7 +51,6 @@ namespace SkiRace
 
             foreach (var terrain in Terrain.activeTerrains)
             {
-                terrain.drawInstanced = true;
                 terrain.treeDistance = Mathf.Min(terrain.treeDistance, TreeDistance);
                 terrain.treeBillboardDistance = Mathf.Min(terrain.treeBillboardDistance, BillboardDistance);
                 terrain.detailObjectDistance = Mathf.Min(terrain.detailObjectDistance, DetailDistance);
