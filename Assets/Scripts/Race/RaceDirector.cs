@@ -469,8 +469,13 @@ namespace SkiRace
                 : (track.GetStartSlot(0) != null ? track.GetStartSlot(0).position : state.position);
 
             float distance = Vector3.Distance(state.position, target);
-            float segment = Mathf.Max(1f, Vector3.Distance(previous, target));
-            float fraction = Mathf.Clamp01(1f - distance / segment);
+            Vector3 span = target - previous;
+            float segment = Mathf.Max(1f, span.magnitude);
+            // Project onto the leg instead of using a raw radius: skiing wide or cutting a corner
+            // no longer reads as being behind someone who took a longer line.
+            float fraction = span.sqrMagnitude > .0001f
+                ? Mathf.Clamp01(Vector3.Dot(state.position - previous, span) / span.sqrMagnitude)
+                : 0f;
 
             state.distanceToNext = distance;
             state.progressMeters = completedDistance + fraction * segment;

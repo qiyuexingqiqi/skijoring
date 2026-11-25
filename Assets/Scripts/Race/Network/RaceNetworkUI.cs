@@ -102,7 +102,7 @@ namespace SkiRace.Network
             }
             returnButton = Button(resultPanel, "Room", "返回房间再来一局", -160, -552, 300, 50, manager.ReturnToRoom);
             Button(resultPanel, "Leave", "离开房间", 160, -552, 300, 50, () => manager.Leave());
-            Label(resultPanel, "Hint", "成绩由房主统一记录  ·  R 复位每次加时 3 秒", 0, -612, 680, 28, 15);
+            Label(resultPanel, "Hint", "任意玩家可返回房间，房主返回后开始下一局  ·  R 复位每次加时 3 秒", 0, -612, 680, 28, 15);
 
             racing = Rect("Racing", canvas.transform).gameObject; Stretch((RectTransform)racing.transform);
             var rankPanel = Surface("Leaderboard", racing.transform, 350, 380);
@@ -148,7 +148,9 @@ namespace SkiRace.Network
             readyLabel.text = self.ready ? "取消准备" : "准备";
             startButton.interactable = manager.IsRoomHost && room.members.Length >= 2 && room.members.All(m => m.ready);
             startLabel.text = manager.IsRoomHost ? (room.members.Length < 2 ? "等待至少 2 人" : "开始比赛") : "等待房主开始";
-            returnButton.interactable = manager.IsRoomHost;
+            returnButton.interactable = true;
+            // The scoreboard is only visible in the race and result screens; skip its string work elsewhere.
+            if (Screen != Page.Racing && Screen != Page.Results) return;
             var race = manager.Race;
             var rows = race.rows ?? new RaceRankRow[0];
             var local = rows.FirstOrDefault(r => r.racerId == manager.LocalId);

@@ -83,8 +83,12 @@ namespace SkiRace.Network
             if (balanced && spine != null) spine.localRotation = spinePose;
             balanced = false;
             if (!received) return;
-            float blend = 1 - Mathf.Exp(-15 * Time.unscaledDeltaTime);
-            transform.position = Vector3.Lerp(transform.position, target.position, blend);
+            // Extrapolate along the last known velocity so a 20 Hz pose stream still looks continuous.
+            Vector3 aim = target.position;
+            if (!target.braking && target.velocity.sqrMagnitude > .25f)
+                aim += Vector3.ClampMagnitude(target.velocity, 75) * .05f;
+            float blend = 1 - Mathf.Exp(-18 * Time.unscaledDeltaTime);
+            transform.position = Vector3.Lerp(transform.position, aim, blend);
             transform.rotation = Quaternion.Slerp(transform.rotation, target.rotation, blend);
             model.position = transform.position + target.visualOffset;
             model.rotation = Quaternion.Slerp(model.rotation, target.visualRotation, blend);
@@ -120,6 +124,8 @@ namespace SkiRace.Network
             skis = GetComponent<CarvingController>();
             snowboard = GetComponent<Snowboard.PlayerController>();
             body = GetComponent<Rigidbody>();
+            // Record the authored physics state before the lobby lock can freeze it.
+            foreach (var rb in GetComponentsInChildren<Rigidbody>(true)) physicsDefaults[rb] = rb.isKinematic;
         }
 
         public void SetLocked(bool value)
@@ -145,7 +151,7 @@ namespace SkiRace.Network
         private void LateUpdate()
         {
             if (owner == null || !owner.InRoom || Time.realtimeSinceStartupAsDouble < nextSend) return;
-            nextSend = Time.realtimeSinceStartupAsDouble + .05;
+            nextSend = Time.realtimeSinceStartupAsDouble + .033;
             if (animator == null) animator = GetComponentInChildren<Animator>();
             var state = animator != null ? animator.GetCurrentAnimatorStateInfo(0) : default;
             var visual = animator != null ? animator.transform : transform;

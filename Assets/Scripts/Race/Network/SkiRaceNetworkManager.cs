@@ -77,10 +77,10 @@ namespace SkiRace.Network
             if (Instance != null || FindObjectOfType<GearSelect>(true) == null) return;
             var go = new GameObject("MultiplayerRace");
             go.SetActive(false);
-            var tcp = go.AddComponent<TelepathyTransport>();
-            tcp.port = 7777;
+            var kcp = go.AddComponent<kcp2k.KcpTransport>();
+            kcp.port = 7777;
             var manager = go.AddComponent<SkiRaceNetworkManager>();
-            manager.transport = tcp;
+            manager.transport = kcp;
             manager.dontDestroyOnLoad = false;
             manager.autoCreatePlayer = false;
             manager.maxConnections = 8;
@@ -281,7 +281,7 @@ namespace SkiRace.Network
             {
                 peer.nextReset = now + 1; director.ResetRacer(peer.member.id);
             }
-            else if (msg.action == 3 && peer.member.id == hostId && director.Phase == RacePhase.Finished)
+            else if (msg.action == 3 && director.Phase == RacePhase.Finished)
             {
                 director.AbortToLobby(); director.ClearRacers();
                 foreach (var p in peers.Values) p.member.ready = false;
@@ -390,9 +390,11 @@ namespace SkiRace.Network
                 || !Finite(pose.rotation) || !Finite(pose.visualRotation) || !Finite(pose.turn) || !Finite(pose.animationTime)) return;
             if (director.GetRacerStatus(peer.member.id) == RacerStatus.Finished) return;
             double now = Time.realtimeSinceStartupAsDouble;
-            double dt = peer.hasPose ? Math.Max(.01, now - peer.lastPoseTime) : 0;
-            float allowance = peer.hasPose ? (float)(Math.Max(80, director.maxCheckpointSpeed) * dt + 5) : 12;
-            if (Vector3.Distance(peer.position, pose.position) > allowance || pose.velocity.magnitude > 130) return;
+            double sincePose = peer.hasPose ? Math.Max(0, now - peer.lastPoseTime) : 0;
+            float allowance = peer.hasPose ? (float)(Math.Max(80, director.maxCheckpointSpeed) * Math.Max(.01, sincePose) + 5) : 12;
+            // A network stall must never freeze a rider forever: after 0.6 s accept the reported spot.
+            if (peer.hasPose && sincePose > .6) allowance = Mathf.Max(allowance, 1000f);
+            if (Vector3.Distance(peer.position, pose.position) > allowance || pose.velocity.magnitude > 160) return;
             Vector3 previous = peer.position;
             peer.position = pose.position; peer.lastPoseTime = now; peer.hasPose = true; peer.sequence = pose.sequence;
             director.SetRacerPosition(peer.member.id, peer.position);
@@ -450,7 +452,7 @@ namespace SkiRace.Network
                 { nextBroadcast = now + .2; BroadcastRace(); }
             }
             if (NetworkClient.active && !InRoom && connectionDeadline > 0 && now > connectionDeadline)
-            { Status = "连接超时，请检查房主地址及 TCP 7777 端口。"; Leave(false); }
+            { Status = "连接超时，请检查房主地址及 UDP 7777 端口。"; Leave(false); }
             if (LocalRider == null || !InRoom) return;
             var local = Race.rows != null ? Race.rows.FirstOrDefault(r => r.racerId == LocalId) : default;
             bool finished = local.status == RacerStatus.Finished || local.status == RacerStatus.Dnf || Race.phase == RacePhase.Finished;
