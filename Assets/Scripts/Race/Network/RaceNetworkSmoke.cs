@@ -29,6 +29,9 @@ namespace SkiRace.Network
         private double frozenTime = -1;
         private int waypoint;
         private int screenshots;
+        private int frames;
+        private double fpsWindow;
+        private Unity.Profiling.ProfilerRecorder mainMs, batches, tris;
         private double resetDeadline;
         private double nextDiag;
         private static int trainingStage;
@@ -45,9 +48,14 @@ namespace SkiRace.Network
             manager = GetComponent<SkiRaceNetworkManager>(); role = Arg("-raceSmoke", "client");
             report = Arg("-raceReport", Path.Combine(Application.persistentDataPath, "network-smoke.json"));
             roomFile = Arg("-raceRoom", Path.Combine(Application.temporaryCachePath, "race-room.txt"));
-            expected = int.Parse(Arg("-racePlayers", "4")); started = Time.realtimeSinceStartupAsDouble;
+            expected = int.Parse(Arg("-racePlayers", "4")); started = Time.realtimeSinceStartupAsDouble; fpsWindow = started;
             manager.PlayerName = Arg("-raceName", role); manager.DoubleBoard = Arg("-raceEquipment", "single") == "double";
-            Application.targetFrameRate = 30; QualitySettings.vSyncCount = 0;
+            Application.targetFrameRate = 60; QualitySettings.vSyncCount = 0;
+            int quality = int.Parse(Arg("-raceQuality", "-1"));
+            if (quality >= 0) QualitySettings.SetQualityLevel(quality, true);
+            mainMs = Unity.Profiling.ProfilerRecorder.StartNew(Unity.Profiling.ProfilerCategory.Internal, "Main Thread", 15);
+            batches = Unity.Profiling.ProfilerRecorder.StartNew(Unity.Profiling.ProfilerCategory.Render, "Batches Count", 15);
+            tris = Unity.Profiling.ProfilerRecorder.StartNew(Unity.Profiling.ProfilerCategory.Render, "Triangles Count", 15);
             if (role == "host")
             {
                 var boards = FindObjectsOfType<CarvingController>(true).Select(c => (c.name + ":" + c.gameObject.activeInHierarchy))
@@ -59,6 +67,16 @@ namespace SkiRace.Network
         private void Update()
         {
             double now = Time.realtimeSinceStartupAsDouble;
+            frames++;
+            if (now - fpsWindow >= 3)
+            {
+                Debug.Log("[PERF] fps=" + (frames / (now - fpsWindow)).ToString("F1") + " " + Screen.width + "x" + Screen.height
+                    + " quality=" + QualitySettings.GetQualityLevel()
+                    + " mainMs=" + (mainMs.Valid ? (mainMs.LastValue / 1000000f).ToString("F1") : "-")
+                    + " batches=" + (batches.Valid ? batches.LastValue : 0)
+                    + " tris=" + (tris.Valid ? tris.LastValue : 0));
+                frames = 0; fpsWindow = now;
+            }
             if (now - started > 170) { Finish(false, "timeout: " + manager.Status + " phase=" + manager.Race.phase); return; }
             if (now - started < 1) return;
             if (screenshots == 0) { Capture("mode"); screenshots++; return; }
@@ -147,8 +165,7 @@ namespace SkiRace.Network
             }
         }
 
-        private void Capture(string suffix)
-        {
+        private void Capture(string suffix)        {
             if (Arg("-raceCapture", "0") != "1") return;
             StartCoroutine(CaptureLayout(suffix));
         }
