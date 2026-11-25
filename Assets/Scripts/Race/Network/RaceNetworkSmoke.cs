@@ -29,6 +29,8 @@ namespace SkiRace.Network
         private double frozenTime = -1;
         private int waypoint;
         private int screenshots;
+        private double resetDeadline;
+        private double nextDiag;
         private static int trainingStage;
         private bool menuShown, lobbyCaptured;
 
@@ -46,6 +48,12 @@ namespace SkiRace.Network
             expected = int.Parse(Arg("-racePlayers", "4")); started = Time.realtimeSinceStartupAsDouble;
             manager.PlayerName = Arg("-raceName", role); manager.DoubleBoard = Arg("-raceEquipment", "single") == "double";
             Application.targetFrameRate = 30; QualitySettings.vSyncCount = 0;
+            if (role == "host")
+            {
+                var boards = FindObjectsOfType<CarvingController>(true).Select(c => (c.name + ":" + c.gameObject.activeInHierarchy))
+                    .Concat(FindObjectsOfType<Snowboard.PlayerController>(true).Select(c => (c.name + ":" + c.gameObject.activeInHierarchy)));
+                Debug.Log("DIAG_BOARDS " + string.Join(",", boards.ToArray()));
+            }
         }
 
         private void Update()
@@ -105,10 +113,21 @@ namespace SkiRace.Network
                     else if (Math.Abs(frozenTime - self.elapsedSeconds) > .001) { Finish(false, "finish time changed"); return; }
                     return;
                 }
+                if (role == "host" && now >= nextDiag)
+                {
+                    nextDiag = now + 1;
+                    var cam = Camera.main;
+                    var vcam = FindObjectOfType<Cinemachine.CinemachineVirtualCamera>();
+                    Debug.Log("DIAG t=" + (now - started).ToString("F1") + " phase=" + manager.Race.phase + " wp=" + waypoint
+                        + " cpi=" + self.checkpointIndex + " status=" + self.status + " rev=" + manager.LocalRevision
+                        + " pos=" + manager.LocalRider.transform.position.ToString("F1")
+                        + " cam=" + (cam != null ? cam.transform.position.ToString("F1") : "none")
+                        + " follow=" + (vcam != null && vcam.Follow != null ? vcam.Follow.name + "@" + vcam.Follow.position.ToString("F1") : "none"));
+                }
                 if (self.checkpointIndex >= 0 && !resetRequested)
-                { manager.RequestReset(); resetRequested = true; nextAction = now + .5; return; }
+                { manager.RequestReset(); resetRequested = true; resetDeadline = now + 2; nextAction = now + .5; return; }
                 if (resetRequested && manager.LocalRevision >= 2) resetObserved = true;
-                if (resetRequested && !resetObserved) return;
+                if (resetRequested && !resetObserved && now < resetDeadline) return;
                 waypoint = Mathf.Max(waypoint, self.checkpointIndex + 1);
                 if (waypoint >= manager.director.track.CheckpointCount) return;
                 Vector3 target = manager.director.track.GetCheckpointPosition(waypoint) + Vector3.up * 1.5f;

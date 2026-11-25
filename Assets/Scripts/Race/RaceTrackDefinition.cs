@@ -39,6 +39,28 @@ namespace SkiRace
             return startSlots[Mathf.Clamp(index, 0, startSlots.Length - 1)];
         }
 
+        /// <summary>按实际参赛人数居中的起跑位置，2 人比赛也能站在雪道正中间。</summary>
+        public Vector3 GetStartPosition(int index, int count)
+        {
+            count = Mathf.Max(1, count);
+            Vector3 anchor = GetCheckpointPosition(0);
+            Vector3 forward = Vector3.ProjectOnPlane(GetCheckpointPosition(1) - anchor, Vector3.up);
+            forward = forward.sqrMagnitude > .0001f ? forward.normalized : transform.forward;
+            Vector3 right = Vector3.Cross(Vector3.up, forward);
+            Vector3 position = anchor - forward * 6f + right * ((index - (count - 1) * .5f) * 2.5f);
+
+            // CP0 在坡道下方，直接沿用它的高度会让起跑点陷进雪里；改为向下采样最近的实际雪面。
+            RaycastHit closest = default;
+            float best = float.MaxValue;
+            foreach (var hit in Physics.RaycastAll(position + Vector3.up * 25f, Vector3.down, 60f, ~0, QueryTriggerInteraction.Ignore))
+            {
+                float delta = Mathf.Abs(hit.point.y - anchor.y);
+                if (delta < best) { best = delta; closest = hit; }
+            }
+            if (closest.collider != null) position.y = closest.point.y;
+            return position;
+        }
+
         /// <summary>复位点：回到最近通过的检查点；一个都没过就回起点。</summary>
         public Vector3 GetRespawnPosition(int lastCheckpointIndex, Vector3 fallback)
         {

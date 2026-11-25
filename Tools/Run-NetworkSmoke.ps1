@@ -1,5 +1,5 @@
 param(
-    [ValidateSet(4, 8)][int]$Players = 4,
+    [ValidateSet(2, 3, 4, 8)][int]$Players = 4,
     [string]$Executable,
     [switch]$Capture
 )

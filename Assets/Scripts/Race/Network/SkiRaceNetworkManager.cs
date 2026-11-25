@@ -161,7 +161,7 @@ namespace SkiRace.Network
             if (IsConnecting || NetworkClient.active || NetworkServer.active) return;
             if (!ValidateConfiguration()) return;
             MultiplayerSelected = true;
-            Capacity = Mathf.Clamp(Capacity, 4, 8);
+            Capacity = Mathf.Clamp(Capacity, 2, 8);
             // Handshakes do not occupy gameplay slots; allow concurrent rejected joins to receive a reason.
             maxConnections = Capacity + 4;
             serverCode = UnityEngine.Random.Range(100000, 1000000).ToString();
@@ -276,7 +276,7 @@ namespace SkiRace.Network
                 peer.member.ready = !peer.member.ready; BroadcastRoom();
             }
             else if (msg.action == 1 && peer.member.id == hostId && director.Phase == RacePhase.Lobby
-                && peers.Count >= 4 && peers.Values.All(p => p.member.ready)) BeginRound();
+                && peers.Count >= 2 && peers.Values.All(p => p.member.ready)) BeginRound();
             else if (msg.action == 2 && director.Phase == RacePhase.Racing && now >= peer.nextReset)
             {
                 peer.nextReset = now + 1; director.ResetRacer(peer.member.id);
@@ -293,10 +293,11 @@ namespace SkiRace.Network
         {
             Round++;
             director.ClearRacers();
+            int count = peers.Count;
             foreach (var peer in peers.Values)
             {
                 var slot = director.track.GetStartSlot(peer.member.slot);
-                peer.position = slot.position + Vector3.up * .5f;
+                peer.position = director.track.GetStartPosition(peer.member.slot, count) + Vector3.up * .5f;
                 peer.hasPose = false; peer.sequence = 0; peer.revision++;
                 director.RegisterRacer(peer.member.id, peer.member.name);
                 director.SetRacerPosition(peer.member.id, peer.position);
@@ -361,7 +362,7 @@ namespace SkiRace.Network
                 var go = new GameObject("NetworkRider_" + member.id);
                 var view = go.AddComponent<RaceRiderView>(); view.Initialize(member, assets); views.Add(member.id, view);
                 var slot = director.track.GetStartSlot(member.slot);
-                go.transform.SetPositionAndRotation(slot.position + Vector3.up * .5f, slot.rotation);
+                go.transform.SetPositionAndRotation(director.track.GetStartPosition(member.slot, Room.members.Length) + Vector3.up * .5f, slot.rotation);
             }
         }
 
@@ -426,7 +427,7 @@ namespace SkiRace.Network
             var peer = peers.Values.FirstOrDefault(p => p.member.id == id);
             if (peer == null) return;
             int last = director.GetLastCheckpointIndex(id);
-            if (last < 0) position = director.track.GetStartSlot(peer.member.slot).position + Vector3.up * .5f;
+            if (last < 0) position = director.track.GetStartPosition(peer.member.slot, peers.Count) + Vector3.up * .5f;
             Vector3 direction = director.track.GetCheckpointPosition(Mathf.Clamp(last + 1, 0, director.track.FinishIndex)) - position;
             direction.y = 0;
             peer.position = position; peer.hasPose = false; peer.sequence = 0; peer.revision++;

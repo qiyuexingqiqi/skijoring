@@ -30,22 +30,11 @@ public static class MultiplayerRaceSetup
         assets.fallbackFont = AssetDatabase.LoadAssetAtPath<Font>("Assets/UI/Fonts/AlpineUI.ttf");
         EditorUtility.SetDirty(assets);
 
-        // The legacy second row was hundreds of metres behind the start. Keep both rows together.
-        Vector3 start = track.GetStartSlot(0).position;
-        Vector3 forward = Vector3.ProjectOnPlane(track.GetCheckpointPosition(0) - start, Vector3.up).normalized;
-        Vector3 right = Vector3.Cross(Vector3.up, forward);
+        // Slot 0 used to sit hundreds of metres below the first checkpoint. Line every slot
+        // up on the actual snow surface so the race starts on the slope instead of under it.
+        Vector3 forward = Vector3.ProjectOnPlane(track.GetCheckpointPosition(1) - track.GetCheckpointPosition(0), Vector3.up).normalized;
         for (int i = 0; i < track.startSlots.Length; i++)
-        {
-            Vector3 position = start + right * ((i % 4) * 3) - forward * ((i / 4) * 4);
-            foreach (var terrain in Terrain.activeTerrains)
-            {
-                Vector3 local = position - terrain.transform.position;
-                if (local.x < 0 || local.z < 0 || local.x > terrain.terrainData.size.x || local.z > terrain.terrainData.size.z) continue;
-                position.y = terrain.SampleHeight(position) + terrain.transform.position.y + .25f;
-                break;
-            }
-            track.startSlots[i].SetPositionAndRotation(position, Quaternion.LookRotation(forward));
-        }
+            track.startSlots[i].SetPositionAndRotation(track.GetStartPosition(i, track.startSlots.Length), Quaternion.LookRotation(forward));
         director.enabled = false;
         director.resetPenaltySeconds = 3;
         foreach (var tool in UnityEngine.Object.FindObjectsOfType<LocalRaceSimulator>(true)) tool.enabled = false;

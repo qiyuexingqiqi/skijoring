@@ -53,7 +53,7 @@ namespace SkiRace.Network
             Label(modePanel, "Subtitle", "选择你的滑行方式", 0, -108, 650, 32, 18);
             Button(modePanel, "Training", "单人训练", -170, -216, 280, 90, manager.Train);
             Button(modePanel, "Multiplayer", "多人竞速", 170, -216, 280, 90, manager.Multiplayer);
-            Label(modePanel, "Hint", "单板与双板  ·  同一局域网  ·  4–8 人竞速", 0, -358, 680, 30, 16);
+            Label(modePanel, "Hint", "单板与双板  ·  同一局域网  ·  2–8 人竞速", 0, -358, 680, 30, 16);
 
             var connectPanel = FullScreen("Connect", out connect, 760, 650);
             Label(connectPanel, "Title", "多人竞速", 0, -28, 680, 48, 30, true);
@@ -63,7 +63,7 @@ namespace SkiRace.Network
             nameInput.onValueChanged.AddListener(value => manager.PlayerName = value); manager.PlayerName = nameInput.text;
             gearButton = Button(connectPanel, "Equipment", "装备：单板", -160, -164, 300, 44, () => { manager.DoubleBoard = !manager.DoubleBoard; });
             gearLabel = gearButton.GetComponentInChildren<Text>();
-            capacityButton = Button(connectPanel, "Capacity", "房间上限：8 人", 160, -164, 300, 44, () => { manager.Capacity = manager.Capacity == 8 ? 4 : 8; });
+            capacityButton = Button(connectPanel, "Capacity", "房间上限：8 人", 160, -164, 300, 44, () => { manager.Capacity = manager.Capacity == 2 ? 3 : manager.Capacity == 3 ? 4 : manager.Capacity == 4 ? 8 : 2; });
             capacityLabel = capacityButton.GetComponentInChildren<Text>();
             createButton = Button(connectPanel, "Create", "创建房间", 0, -232, 620, 52, () => { SaveName(); manager.CreateRoom(); });
             Label(connectPanel, "JoinLabel", "加入已有房间", 0, -302, 650, 32, 18, true);
@@ -77,7 +77,7 @@ namespace SkiRace.Network
 
             var lobbyPanel = FullScreen("Lobby", out lobby, 760, 650);
             lobbyTitle = Label(lobbyPanel, "Title", "", 0, -28, 690, 50, 28, true);
-            Label(lobbyPanel, "Hint", "4 人起赛  ·  全员准备后由房主开始  ·  分享房间号邀请好友", 0, -88, 700, 30, 16);
+            Label(lobbyPanel, "Hint", "2 人起赛  ·  全员准备后由房主开始  ·  分享房间号邀请好友", 0, -88, 700, 30, 16);
             members = Label(lobbyPanel, "Members", "", 0, -148, 650, 334, 20);
             members.alignment = TextAnchor.UpperLeft; members.lineSpacing = 1.6f;
             readyButton = Button(lobbyPanel, "Ready", "准备", -160, -520, 300, 48, manager.ToggleReady);
@@ -146,8 +146,8 @@ namespace SkiRace.Network
             members.text = string.Join("\n", room.members.Select(m => (m.id == manager.LocalId ? "▶ " : "   ") + m.name + (m.id == room.hostId ? "  [房主]" : "") + "    " + (m.doubleBoard ? "双板" : "单板") + "    " + (m.ready ? "已准备" : "等待准备")));
             var self = room.members.FirstOrDefault(m => m.id == manager.LocalId);
             readyLabel.text = self.ready ? "取消准备" : "准备";
-            startButton.interactable = manager.IsRoomHost && room.members.Length >= 4 && room.members.All(m => m.ready);
-            startLabel.text = manager.IsRoomHost ? (room.members.Length < 4 ? "等待至少 4 人" : "开始比赛") : "等待房主开始";
+            startButton.interactable = manager.IsRoomHost && room.members.Length >= 2 && room.members.All(m => m.ready);
+            startLabel.text = manager.IsRoomHost ? (room.members.Length < 2 ? "等待至少 2 人" : "开始比赛") : "等待房主开始";
             returnButton.interactable = manager.IsRoomHost;
             var race = manager.Race;
             var rows = race.rows ?? new RaceRankRow[0];
