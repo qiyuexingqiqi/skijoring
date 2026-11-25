@@ -70,7 +70,7 @@ namespace SkiRace.Network
             codeInput = Input(connectPanel, "Code", "六位房间号", -160, -354, 300, 44, 6);
             codeInput.contentType = InputField.ContentType.IntegerNumber;
             joinButton = Button(connectPanel, "Join", "加入房间", 160, -354, 300, 44, () => { SaveName(); manager.JoinRoom(codeInput.text, addressInput.text); });
-            addressInput = Input(connectPanel, "Address", "房主 IP（可选，留空自动搜索）", 0, -412, 620, 40, 64);
+            addressInput = Input(connectPanel, "Address", "房主 IP 或 IP:端口（可选，留空自动搜索）", 0, -412, 620, 40, 64);
             status = Label(connectPanel, "Status", "", 0, -472, 650, 68, 16);
             Button(connectPanel, "Back", "返回模式选择", -160, -582, 300, 44, manager.Home);
             Button(connectPanel, "Cancel", "取消连接", 160, -582, 300, 44, () => manager.Leave());

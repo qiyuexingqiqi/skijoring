@@ -95,7 +95,7 @@ namespace SkiRace.Network
                 {
                     string code = File.ReadAllText(roomFile).Trim();
                     // At least one client uses the UDP room-code lookup; others exercise TCP direct join.
-                    manager.JoinRoom(code, Arg("-raceDiscovery", "0") == "1" ? "" : "127.0.0.1"); created = true;
+                    manager.JoinRoom(code, Arg("-raceHost", Arg("-raceDiscovery", "0") == "1" ? "" : "127.0.0.1")); created = true;
                 }
                 return;
             }

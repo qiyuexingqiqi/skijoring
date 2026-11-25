@@ -12,6 +12,7 @@ namespace SkiRace.Network
     public sealed class SkiRaceNetworkManager : NetworkManager
     {
         public const int Protocol = 1;
+        public const int DefaultPort = 7777;
         public static SkiRaceNetworkManager Instance => singleton as SkiRaceNetworkManager;
         public RaceNetworkAssets assets;
         public RaceDirector director;
@@ -78,7 +79,7 @@ namespace SkiRace.Network
             var go = new GameObject("MultiplayerRace");
             go.SetActive(false);
             var kcp = go.AddComponent<kcp2k.KcpTransport>();
-            kcp.port = 7777;
+            kcp.port = (ushort)DefaultPort;
             var manager = go.AddComponent<SkiRaceNetworkManager>();
             manager.transport = kcp;
             manager.dontDestroyOnLoad = false;
@@ -160,6 +161,8 @@ namespace SkiRace.Network
         {
             if (IsConnecting || NetworkClient.active || NetworkServer.active) return;
             if (!ValidateConfiguration()) return;
+            // Hosting always listens on the canonical port, whatever a previous direct join used.
+            if (transport is kcp2k.KcpTransport kcp) kcp.Port = (ushort)DefaultPort;
             MultiplayerSelected = true;
             Capacity = Mathf.Clamp(Capacity, 2, 8);
             // Handshakes do not occupy gameplay slots; allow concurrent rejected joins to receive a reason.
@@ -198,7 +201,21 @@ namespace SkiRace.Network
 
         private void Connect(string address)
         {
-            networkAddress = address;
+            // Direct joins also accept "host:port" so tunnels may expose any UDP port.
+            string host = address.Trim();
+            int port = DefaultPort;
+            int colon = host.LastIndexOf(':');
+            if (colon > 0 && colon < host.Length - 1 && !host.Contains("]"))
+            {
+                string tail = host.Substring(colon + 1);
+                if (int.TryParse(tail, out int parsed) && parsed > 0 && parsed < 65536)
+                {
+                    host = host.Substring(0, colon).Trim();
+                    port = parsed;
+                }
+            }
+            if (transport is kcp2k.KcpTransport kcp) kcp.Port = (ushort)port;
+            networkAddress = host;
             connectionDeadline = Time.realtimeSinceStartupAsDouble + 12;
             Status = "正在连接房间…";
             StartClient();
