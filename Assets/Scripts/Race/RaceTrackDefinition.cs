@@ -61,6 +61,23 @@ namespace SkiRace
             return position;
         }
 
+        /// <summary>
+        /// 检查点“计分面”判定：当前位置是否已经越过该检查点。
+        /// 雪道很宽，玩家经常从门侧几十米处掠过，光靠 60m 的门框触发器会漏判，
+        /// 因此联机端用这个按赛段平面的判定兜底，避免漏点导致排名差一整段、终点永远不触发。
+        /// </summary>
+        public bool HasPassedGate(int index, Vector3 position, float maxDistance = 700f)
+        {
+            if (checkpoints == null || index < 0 || index >= checkpoints.Length) return false;
+            Vector3 target = GetCheckpointPosition(index);
+            Vector3 direction = index < checkpoints.Length - 1
+                ? GetCheckpointPosition(index + 1) - target
+                : (index > 0 ? target - GetCheckpointPosition(index - 1) : transform.forward);
+            Vector3 offset = position - target;
+            if (direction.sqrMagnitude < .0001f) direction = transform.forward;
+            return Vector3.Dot(offset, direction) >= 0f && offset.magnitude <= maxDistance;
+        }
+
         /// <summary>复位点：回到最近通过的检查点；一个都没过就回起点。</summary>
         public Vector3 GetRespawnPosition(int lastCheckpointIndex, Vector3 fallback)
         {

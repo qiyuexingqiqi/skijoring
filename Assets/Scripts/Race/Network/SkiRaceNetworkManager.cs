@@ -415,16 +415,30 @@ namespace SkiRace.Network
             Vector3 previous = peer.position;
             peer.position = pose.position; peer.lastPoseTime = now; peer.hasPose = true; peer.sequence = pose.sequence;
             director.SetRacerPosition(peer.member.id, peer.position);
-            if (director.Phase == RacePhase.Racing)
-            {
-                int next = director.GetLastCheckpointIndex(peer.member.id) + 1;
-                var checkpoint = director.track.GetCheckpoint(next);
-                if (checkpoint != null && Crosses(checkpoint.GetComponent<BoxCollider>(), previous, peer.position))
-                    director.ReportCheckpoint(peer.member.id, next, next == director.track.FinishIndex);
-            }
+            if (director.Phase == RacePhase.Racing) CheckGates(peer, previous, peer.position);
             pose.id = peer.member.id;
             pose.turn = Mathf.Clamp(pose.turn, -1, 1);
             foreach (var recipient in peers.Values) if (recipient != peer) recipient.connection.Send(pose);
+        }
+
+        /// <summary>
+        /// 检查点判定：门框扫掠命中，或者已经越过该检查点的计分面（宽雪道上从门侧掠过也算）。
+        /// 玩家没有按时上报位姿时可能已经跨过两三个门，这里允许连续补发，最多补三个。
+        /// </summary>
+        private void CheckGates(Peer peer, Vector3 from, Vector3 to)
+        {
+            var track = director.track;
+            for (int guard = 0; guard < 3; guard++)
+            {
+                int next = director.GetLastCheckpointIndex(peer.member.id) + 1;
+                if (next < 0 || next >= track.CheckpointCount) return;
+                var gate = track.GetCheckpoint(next);
+                if (gate == null) return;
+                if (!Crosses(gate.GetComponent<BoxCollider>(), from, to) && !track.HasPassedGate(next, to)) return;
+                director.ReportCheckpoint(peer.member.id, next, next == track.FinishIndex);
+                // ReportCheckpoint 有 0.35s 的最小间隔，被拒时下一帧会再来。
+                if (director.GetLastCheckpointIndex(peer.member.id) != next) return;
+            }
         }
 
         public static bool Crosses(BoxCollider box, Vector3 from, Vector3 to)
