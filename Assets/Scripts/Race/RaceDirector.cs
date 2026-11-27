@@ -84,6 +84,7 @@ namespace SkiRace
         private double countdownEnd;
         private double nextRankingTime;
         private bool completed;
+        private bool recalculating;
 
         private double CurrentTime => clock != null ? clock() : Time.timeAsDouble;
 
@@ -389,8 +390,21 @@ namespace SkiRace
 
         private void RecalculateRanking(double now)
         {
-            if (track == null || track.CheckpointCount == 0) return;
+            if (track == null || track.CheckpointCount == 0 || recalculating) return;
+            // ReportCheckpoint 内部也会刷新排名，这里避免递归重入。
+            recalculating = true;
+            try
+            {
+                foreach (var state in racers.Values) AdvanceGates(state);
+                RebuildRanking(now);
+            }
+            finally { recalculating = false; }
 
+            RankingChanged?.Invoke(ranking);
+        }
+
+        private void RebuildRanking(double now)
+        {
             sortBuffer.Clear();
             foreach (var state in racers.Values)
             {
@@ -421,8 +435,21 @@ namespace SkiRace
                     status = state.status
                 });
             }
+        }
 
-            RankingChanged?.Invoke(ranking);
+        /// <summary>按“越过检查点平面”补记检查点；顺序、速度等规则仍由 ReportCheckpoint 校验。</summary>
+        private void AdvanceGates(RacerState state)
+        {
+            if (Phase != RacePhase.Racing || state.status != RacerStatus.Racing || !state.hasPosition) return;
+            for (int guard = 0; guard < 3; guard++)
+            {
+                int next = state.lastCheckpoint + 1;
+                if (next >= track.CheckpointCount) return;
+                if (!track.HasPassedGate(next, state.position)) return;
+                int before = state.lastCheckpoint;
+                ReportCheckpoint(state.id, next, next == track.FinishIndex);
+                if (state.lastCheckpoint == before) return;
+            }
         }
 
         private void ComputeProgress(RacerState state)
@@ -558,11 +585,12 @@ namespace SkiRace
                 }
             }
 
-            RecalculateRanking(now);
+            RebuildRanking(now);
             results.Clear();
             results.AddRange(ranking);
             Phase = RacePhase.Finished;
 
+            RankingChanged?.Invoke(ranking);
             PhaseChanged?.Invoke(Phase);
             RaceCompleted?.Invoke(results);
         }
