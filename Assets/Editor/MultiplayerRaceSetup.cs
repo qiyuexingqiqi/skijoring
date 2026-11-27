@@ -102,6 +102,44 @@ public static class MultiplayerRaceSetup
         catch (Exception e) { Debug.LogException(e); EditorApplication.Exit(1); }
     }
 
+    [MenuItem("Tools/Race/Audit Track Colliders")]
+    public static void AuditTrackColliders()
+    {
+        EditorSceneManager.OpenScene(ScenePath);
+        var director = UnityEngine.Object.FindObjectOfType<RaceDirector>(true);
+        if (director == null || director.track == null) throw new Exception("Missing race track");
+        var track = director.track;
+        var points = new System.Collections.Generic.List<Vector3>();
+        for (int i = 0; i < track.CheckpointCount; i++) points.Add(track.GetCheckpointPosition(i));
+
+        var hits = new System.Collections.Generic.Dictionary<string, int>();
+        var samples = 0;
+        int stripped = RacePerformance.DisableDecorativeColliders();
+        for (int i = 0; i < points.Count - 1; i++)
+        {
+            int steps = Mathf.Max(1, Mathf.CeilToInt(Vector3.Distance(points[i], points[i + 1]) / 4f));
+            for (int s = 0; s <= steps; s++)
+            {
+                Vector3 p = Vector3.Lerp(points[i], points[i + 1], s / (float)steps);
+                samples++;
+                foreach (var col in Physics.OverlapSphere(p + Vector3.up * 1.5f, 2.5f, ~0, QueryTriggerInteraction.Ignore))
+                {
+                    if (col is TerrainCollider) continue;
+                    if (col.GetComponentInParent<CarvingController>() != null) continue;
+                    if (col.GetComponentInParent<Snowboard.PlayerController>() != null) continue;
+                    string path = col.name;
+                    for (var t = col.transform.parent; t != null; t = t.parent) path = t.name + "/" + path;
+                    hits[path] = hits.TryGetValue(path, out int n) ? n + 1 : 1;
+                }
+            }
+        }
+
+        Directory.CreateDirectory("Logs");
+        File.WriteAllLines("Logs/track-colliders.txt", hits.OrderByDescending(h => h.Value).Select(h => h.Value + "\t" + h.Key).Prepend("samples=" + samples));
+        Debug.Log("TRACK_COLLIDER_AUDIT " + hits.Count + " blocking colliders, " + samples + " samples, " + stripped + " decorative colliders disabled");
+        EditorApplication.Exit(0);
+    }
+
     public static void BuildWindows()
     {
         var output = Path.GetFullPath("Build/Windows/Skijoring.exe"); Directory.CreateDirectory(Path.GetDirectoryName(output));

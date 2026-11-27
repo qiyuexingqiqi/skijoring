@@ -67,6 +67,35 @@ namespace SkiRace
             }
             culler.Range = heavyRange;
             culler.Rebuild();
+            DisableDecorativeColliders();
+        }
+
+        /// <summary>
+        /// 赛道两侧的护栏网（SM_Prop_Fence）在场景里带了实体碰撞体，常常横在滑行线上：
+        /// 玩家撞上去会从 40 km/h 瞬间停住并卡在网前。它们只是装饰，这里统一关掉碰撞。
+        /// </summary>
+        public static int DisableDecorativeColliders()
+        {
+            int disabled = 0;
+            foreach (var collider in Object.FindObjectsOfType<Collider>(true))
+            {
+                if (collider.isTrigger || collider is TerrainCollider || !collider.enabled) continue;
+                if (!IsTrackDecoration(collider.transform)) continue;
+                collider.enabled = false;
+                disabled++;
+            }
+            return disabled;
+        }
+
+        private static bool IsTrackDecoration(Transform transform)
+        {
+            var node = transform;
+            for (int depth = 0; node != null && depth < 3; depth++, node = node.parent)
+            {
+                string name = node.name;
+                if (name.StartsWith("SM_Prop_Fence") || name.StartsWith("网")) return true;
+            }
+            return false;
         }
     }
 
