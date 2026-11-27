@@ -78,10 +78,10 @@ namespace SkiRace.Network
             if (Instance != null || FindObjectOfType<GearSelect>(true) == null) return;
             var go = new GameObject("MultiplayerRace");
             go.SetActive(false);
-            var kcp = go.AddComponent<kcp2k.KcpTransport>();
-            kcp.port = (ushort)DefaultPort;
+            var tcp = go.AddComponent<TelepathyTransport>();
+            tcp.port = (ushort)DefaultPort;
             var manager = go.AddComponent<SkiRaceNetworkManager>();
-            manager.transport = kcp;
+            manager.transport = tcp;
             manager.dontDestroyOnLoad = false;
             manager.autoCreatePlayer = false;
             manager.maxConnections = 8;
@@ -162,7 +162,7 @@ namespace SkiRace.Network
             if (IsConnecting || NetworkClient.active || NetworkServer.active) return;
             if (!ValidateConfiguration()) return;
             // Hosting always listens on the canonical port, whatever a previous direct join used.
-            if (transport is kcp2k.KcpTransport kcp) kcp.Port = (ushort)DefaultPort;
+            if (transport is TelepathyTransport tcp) tcp.Port = (ushort)DefaultPort;
             MultiplayerSelected = true;
             Capacity = Mathf.Clamp(Capacity, 2, 8);
             // Handshakes do not occupy gameplay slots; allow concurrent rejected joins to receive a reason.
@@ -201,7 +201,7 @@ namespace SkiRace.Network
 
         private void Connect(string address)
         {
-            // Direct joins also accept "host:port" so tunnels may expose any UDP port.
+            // Direct joins also accept "host:port" so tunnels may expose any TCP port.
             string host = address.Trim();
             int port = DefaultPort;
             int colon = host.LastIndexOf(':');
@@ -214,7 +214,7 @@ namespace SkiRace.Network
                     port = parsed;
                 }
             }
-            if (transport is kcp2k.KcpTransport kcp) kcp.Port = (ushort)port;
+            if (transport is TelepathyTransport tcp) tcp.Port = (ushort)port;
             networkAddress = host;
             connectionDeadline = Time.realtimeSinceStartupAsDouble + 12;
             Status = "正在连接房间…";
@@ -469,7 +469,7 @@ namespace SkiRace.Network
                 { nextBroadcast = now + .2; BroadcastRace(); }
             }
             if (NetworkClient.active && !InRoom && connectionDeadline > 0 && now > connectionDeadline)
-            { Status = "连接超时，请检查房主地址及 UDP 7777 端口。"; Leave(false); }
+            { Status = "连接超时，请检查房主地址及 TCP 7777 端口。"; Leave(false); }
             if (LocalRider == null || !InRoom) return;
             var local = Race.rows != null ? Race.rows.FirstOrDefault(r => r.racerId == LocalId) : default;
             bool finished = local.status == RacerStatus.Finished || local.status == RacerStatus.Dnf || Race.phase == RacePhase.Finished;
